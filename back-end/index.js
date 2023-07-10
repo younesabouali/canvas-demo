@@ -1,9 +1,9 @@
 const { randomUUID } = require("node:crypto");
 const express = require("express");
 const app = express();
-const port = 3000;
-app.use(express.static("../front-end/dist"));
 require("dotenv").config();
+const port = process.env.PORT;
+app.use(express.static("../front-end/dist"));
 require("express-async-errors");
 var bodyParser = require("body-parser");
 var cors = require("cors");

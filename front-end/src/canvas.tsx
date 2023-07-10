@@ -1,62 +1,55 @@
-import React, { useRef, useEffect, useState } from "react";
-export interface Line {
-  from: [number, number];
-  to: [number, number];
-}
-interface CanvasProps {
-  width: number;
-  height: number;
-  line?: Line;
-}
+import { useEffect, useRef } from "react";
 export const canvasStyle = {
   backgroundColor: "#f0f0f0",
 };
-const Canvas: React.FC<CanvasProps> = ({ width, height, line }) => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [context, setContext] = useState<any>(null);
+const Canvas = ({ points, width, height }: any) => {
+  const canvasRef = useRef<any>(null);
 
-  const DrawLine = (line?: Line) => {
-    if (!canvasRef?.current) return;
-    console.log(context);
-    if (!context) return;
-    context.fillStyle = "red";
+  // Scale points to fit the canvas size
+  // Scale points to fit the canvas size
+  const scalePointY = (point: number, maxPoint: number) =>
+    (point / maxPoint) * maxPoint;
+  const scalePointX = (point: number, maxPoint: number) =>
+    (point / maxPoint) ** 2 * maxPoint; // quadratic transformation
 
+  const drawCurve = () => {
     const canvas = canvasRef.current;
-    // Set canvas size
+    const ctx = canvas.getContext("2d");
 
-    if (line) {
-      if (canvas.width < line?.to[0] || canvas.width < line?.from[0]) return;
-      if (canvas.height < line?.to[1] || canvas.height < line?.from[1]) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath();
 
-      context.lineTo(...line.to); // Ending point
-      context.strokeStyle = "black"; // Line color
-      context.lineWidth = 2; // Line width
-      context.stroke();
-    }
-    // Draw a line
+    points.forEach((point: any, i: number) => {
+      // Swap x and y again and invert y
+      const x = scalePointY(i, points.length - 1);
+      const y = width - scalePointX(point, Math.max(...points));
+
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else if (i === points.length - 1) {
+        ctx.lineTo(x, y);
+      } else {
+        const nextX = scalePointY(i + 1, points.length - 1);
+        const nextY = width - scalePointX(points[i + 1], Math.max(...points));
+
+        ctx.bezierCurveTo(x, y, x, y, nextX, nextY);
+      }
+    });
+
+    ctx.strokeStyle = "black"; // Line color
+    ctx.lineWidth = 2; // Line width
+    ctx.stroke();
   };
-
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    drawCurve();
+  }, [points]);
 
-    const context = canvas.getContext("2d");
-    setContext(context);
-    if (!context) return;
-    canvas.width = width;
-    canvas.height = height;
-    context.beginPath();
-    if (!line) return;
-    context.moveTo(line.from[0], line.from[1]);
-  }, [width, height]);
+  // useEffect(() => {
+  //   drawCurve();
+  // }, [points]); // Re-draw the curve whenever the points array changes
 
-  useEffect(() => {
-    DrawLine(line);
-  }, [line, context]);
   return (
-    <div style={{ width: 500, height: 500, ...canvasStyle }}>
-      <canvas ref={canvasRef} style={canvasStyle} />
-    </div>
+    <canvas ref={canvasRef} width={width} style={canvasStyle} height={height} />
   );
 };
 

@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import "./App.css";
-import Canvas, { Line } from "./canvas";
+
+import Canvas from "./canvas";
 import { baseApi } from "./http";
 let intervalMethod: any;
-const intialPosition: Line = { from: [0, 500], to: [0, 500] };
+const intialPosition = [0];
 function App() {
-  const [line, setLine] = useState<Line>({ ...intialPosition });
+  const [points, setPoints] = useState<number[]>([...intialPosition]);
   const [userName, setUserName] = useState("");
   const [userId, setUserId] = useState("");
   const [status, setStatus] = useState<string>("");
   const [history, setHistory] = useState<any[]>([]);
-  const sendFinalPosition = async (line: Line) => {
+  const sendFinalPosition = async (line: any) => {
     baseApi("/syncPosition", { line, userId });
   };
   const registerUserName = async (user?: string) => {
@@ -20,20 +21,19 @@ function App() {
     loadHistory();
     setUserId(result._id);
     if (result.line) {
-      setLine({ ...result.line });
+      setPoints([...result.line]);
     } else {
-      setLine({ ...intialPosition });
+      setPoints([...intialPosition]);
     }
   };
   const startBetting = () => {
-    setLine((e) => {
-      const newValue: Line = {
-        from: [...e.from],
-        to: [e.to[0] + 50, e.to[1] - 50],
-      };
-      sendFinalPosition(newValue);
-
-      return newValue;
+    setPoints((points) => {
+      if (points.length > 500) clearInterval(intervalMethod);
+      const drawPoints = new Array(points.length + 10)
+        .fill(" ")
+        .map((_, i) => i);
+      sendFinalPosition(drawPoints);
+      return drawPoints;
     });
   };
   const logout = () => {
@@ -49,7 +49,7 @@ function App() {
       if (intervalMethod) clearInterval(intervalMethod);
       intervalMethod = setInterval(() => {
         startBetting();
-      }, 1000);
+      }, 100);
     }
     if (status == "stop") {
       if (intervalMethod) clearInterval(intervalMethod);
@@ -81,11 +81,11 @@ function App() {
               }}
             >
               {" "}
-              {el?.userName} : <pre> {JSON.stringify(el.line)}</pre>
+              {el?.userName} : {el?.line?.length}
             </div>
           ))}
         </div>
-        <Canvas key={userId} width={500} height={500} line={line} />
+        <Canvas key={userId} width={500} height={500} points={points} />
         <div>
           <button
             disabled={status == "betting"}
@@ -98,6 +98,15 @@ function App() {
             onClick={() => setStatus("stop")}
           >
             Stop
+          </button>
+
+          <button
+            onClick={() => {
+              setPoints([...intialPosition]);
+              sendFinalPosition(intialPosition);
+            }}
+          >
+            restart
           </button>
         </div>
       </div>

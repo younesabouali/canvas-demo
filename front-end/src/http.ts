@@ -18,4 +18,5 @@ export const post = async (
   return res;
 };
 const origin = window.location.origin;
+// const origin = "http://localhost:3000";
 export const baseApi = (path: string, body: any) => post(origin, path, body);
