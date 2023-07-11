@@ -1,39 +1,51 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
-import Canvas from "./canvas";
 import { baseApi } from "./http";
+import { GraphCanvas } from "./graph-canvas";
 let intervalMethod: any;
-const intialPosition = [0];
+const intialPosition = 0;
 function App() {
-  const [points, setPoints] = useState<number[]>([...intialPosition]);
   const [userName, setUserName] = useState("");
   const [userId, setUserId] = useState("");
+  const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<string>("");
   const [history, setHistory] = useState<any[]>([]);
   const sendFinalPosition = async (line: any) => {
     baseApi("/syncPosition", { line, userId });
   };
+
+  function graphFunction(x: number) {
+    return x ** 2;
+  }
   const registerUserName = async (user?: string) => {
     let result = await baseApi("/registerUserName", {
       userName: user ? user : userName,
     });
     loadHistory();
     setUserId(result._id);
+    console.log("before");
     if (result.line) {
-      setPoints([...result.line]);
+      setProgress(result.line);
+      console.log("if");
     } else {
-      setPoints([...intialPosition]);
+      console.log("else");
+      setProgress(intialPosition);
     }
+
+    console.log("after");
+    console.log(progress, result.line);
   };
   const startBetting = () => {
-    setPoints((points) => {
-      if (points.length > 500) clearInterval(intervalMethod);
-      const drawPoints = new Array(points.length + 10)
-        .fill(" ")
-        .map((_, i) => i);
-      sendFinalPosition(drawPoints);
-      return drawPoints;
+    setProgress((progress) => {
+      if (progress >= 1) {
+        clearInterval(intervalMethod);
+        return progress;
+      }
+      let incrementedResult = progress + 0.1;
+      if (incrementedResult > 1) incrementedResult = 1;
+      sendFinalPosition(incrementedResult);
+      return incrementedResult;
     });
   };
   const logout = () => {
@@ -81,11 +93,22 @@ function App() {
               }}
             >
               {" "}
-              {el?.userName} : {el?.line?.length}
+              {el?.userName} :{" "}
+              {el?.line?.length ? el?.line?.length : el?.line?.toFixed(2)}
             </div>
           ))}
         </div>
-        <Canvas key={userId} width={500} height={500} points={points} />
+        <GraphCanvas
+          key={userId}
+          width={500}
+          height={500}
+          xMax={100}
+          incrementation={1}
+          progress={progress}
+          xMin={1}
+          graphFunction={graphFunction}
+        />
+        {/* <Canvas /> */}
         <div>
           <button
             disabled={status == "betting"}
@@ -102,7 +125,7 @@ function App() {
 
           <button
             onClick={() => {
-              setPoints([...intialPosition]);
+              setProgress(0);
               sendFinalPosition(intialPosition);
             }}
           >
